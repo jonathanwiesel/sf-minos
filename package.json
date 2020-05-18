@@ -1,0 +1,54 @@
+{
+  "name": "sf-minos",
+  "version": "1.0.0",
+  "description": "",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "test": "jest --config jestconfig.json",
+    "build": "tsc",
+    "lint": "tslint -p tsconfig.json",
+    "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm test && npm run lint",
+    "preversion": "npm run lint",
+    "version": "npm run format"
+  },
+  "files": [
+    "lib/**/*"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jonathanwiesel/sf-minos.git"
+  },
+  "keywords": [
+    "salesforce",
+    "sf", 
+    "unused",
+    "detector", 
+    "workflow", 
+    "email alert", 
+    "trigger", 
+    "process", 
+    "validation rule", 
+    "approval process",
+    "flow",
+    "email template"
+  ],
+  "author": "Jonathan Wiesel",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jonathanwiesel/sf-minos/issues"
+  },
+  "homepage": "https://github.com/jonathanwiesel/sf-minos#readme",
+  "devDependencies": {
+    "prettier": "^2.0.5",
+    "ts-lint": "^4.5.1",
+    "tslint-config-prettier": "^1.18.0",
+    "typescript": "^3.9.2"
+  },
+  "dependencies": {
+    "@types/jsforce": "^1.9.18",
+    "jsforce": "^1.9.3"
+  }
+}

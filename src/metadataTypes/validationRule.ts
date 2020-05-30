@@ -1,14 +1,16 @@
-import { MetadataType, SupportedType } from '../metadataType'
-import { Result } from '../result';
+import { MetadataType, MetadataObject } from '../metadataType';
+
+export interface ValidationRuleDescriptor extends MetadataObject {
+    description: string;
+    errorConditionFormula: string;
+    errorDisplayField: string;
+    errorMessage: string;
+}
 
 export class ValidationRule extends MetadataType {
     
     constructor() {
         super();
-    }
-
-    public getDependantTypes(): Array<SupportedType> {
-        return [];
     }
 
     public getSObjectName(): string {

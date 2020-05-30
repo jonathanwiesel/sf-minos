@@ -1,4 +1,8 @@
-import { MetadataType, SupportedType } from '../metadataType'
+import { MetadataType, MetadataObject } from '../metadataType';
+import { ApprovalProcess } from './approvalProcess';
+import { EntitlementProcess } from './entitlementProcess';
+import { Flow } from './flow';
+import { WorkflowRule } from './workflowRule';
 import { Result } from '../result';
 
 interface Recipient {
@@ -7,8 +11,7 @@ interface Recipient {
     type: string;
 }
 
-interface EmailAlertDescriptor {
-    fullName: string;
+export interface EmailAlertDescriptor extends MetadataObject {
     ccEmails: string;
     description: string;
     protected: boolean;
@@ -20,18 +23,16 @@ interface EmailAlertDescriptor {
 
 export class EmailAlert extends MetadataType {
     
-    useTooling = false;
-
     constructor() {
         super();
     }
 
-    public getDependantTypes(): Array<SupportedType> {
+    public getDependantTypes(): Array<string> {
         return [
-            SupportedType.ApprovalProcess,
-            SupportedType.EntitlementProcess,
-            SupportedType.Flow,
-            SupportedType.WorkflowRule
+            ApprovalProcess.name,
+            EntitlementProcess.name,
+            Flow.name,
+            WorkflowRule.name
         ];
     }
 
@@ -40,20 +41,8 @@ export class EmailAlert extends MetadataType {
     }
 
 
-    protected getUsageForDescriptor(descriptor: any, possibleDependencies: Map<SupportedType, Map<string, Result>>): Result {
-        
-        descriptor = descriptor as Partial<EmailAlertDescriptor>;
-
-        let res: Result = new Result();
-
-        res.metadata = descriptor;
-        res.type = SupportedType.EmailAlert;
-        res.fullName = descriptor.fullName;
-        res.active = true; //
-        // res.dependencies = [];
-
-        // res.unsuedStatus = res.active ? Status.Used : Status.Inactive;
-
-        return res;
+    protected getDependenciesByType(descriptor: MetadataObject, type: string, possibleDependencies: Map<string, Result>): Map<string, Result> {
+        //TODO
+        return null;
     }
 }

@@ -9,28 +9,7 @@ import { ValidationRule } from './metadataTypes/validationRule';
 import { WorkflowRule } from './metadataTypes/workflowRule';
 import { WorkflowTask } from './metadataTypes/workflowTask';
 
-import { Result } from './result';
-
-import { Connection } from 'jsforce';
-
-const TOOLING_COMPOSITE_MAX_SIZE = 25;
-const METADATA_READ_MAX_SIZE = 10;
-
-export interface CriteriaItem {
-    field: string;
-    operation: string;
-    value: string;
-    valueField?: string;
-}
-
-export interface ActionType {
-    field: string;
-    operation: string;
-    value: string;
-    valueField?: string;
-}
-
-export enum SupportedType {
+export const MetadataStore: any = {
     ApprovalProcess,
     EmailAlert,
     EmailTemplate,
@@ -43,11 +22,35 @@ export enum SupportedType {
     WorkflowTask
 }
 
+import { Result } from './result';
+
+import { Connection } from 'jsforce';
+
+const METADATA_READ_MAX_SIZE = 10;
+const VALID_MANAGEABLE_STATES: Array<string> = ['unmanaged', 'deprecatedEditable', 'installedEditable'];
+
+export interface CriteriaItem {
+    field: string;
+    operation: string;
+    value: string;
+    valueField?: string;
+}
+
+export interface ActionType {
+    name: string;
+    type: string;
+}
+
+export interface MetadataObject {
+    fullName: string;
+    active?: boolean;
+}
+
 export abstract class MetadataType {
 
-    objectDescriptors: Map<string, any>;
-    useTooling = false;
+    objectDescriptors: Map<string, MetadataObject>;
     conn: Connection;
+    type: string;
 
     /**
      * *******************
@@ -55,9 +58,11 @@ export abstract class MetadataType {
      * *******************
      */
 
-    public abstract getDependantTypes(): Array<SupportedType>;
     public abstract getSObjectName(): string;
-    protected abstract getUsageForDescriptor(descriptor: any, possibleDependencies: Map<SupportedType, Map<string, Result>>): Result;
+
+    public getDependantTypes(): Array<string> { return []; }
+    protected async getMetadataFolders(): Promise<Array<string>> { return [null]; }
+    protected getDependenciesByType(descriptor: MetadataObject, type:string, possibleDependencies: Map<string, Result>): Map<string, Result> { return null; }
 
     /**
      * *******************
@@ -71,94 +76,74 @@ export abstract class MetadataType {
     
     public async fillTypeData(): Promise<void> {        
 
-        if (this.useTooling) await this.fetchToolingSObjects();
-        else await this.fetchMetadataSObjects();
+        const folders = await this.getMetadataFolders();
+        let fullNames: Array<string> = [];
+
+        for (let folder of folders) {
+            fullNames = fullNames.concat(await this.getMetadataFullNames(this.getSObjectName(), folder))
+        }
+
+        await this.fetchMetadataDescriptions(fullNames);
     }
 
 
-    public reportUsage(possibleDependencies: Map<SupportedType, Map<string, Result>>): Map<string, Result> {
+    public reportUsage(possibleDependencies: Map<string, Map<string, Result>>): Map<string, Result> {
         
         let results: Map<string, Result> = new Map();
         let result: Result;
+        
+        for (let itereatingDescriptor of this.objectDescriptors.values()) {
 
-        for (let itereatingDescriptor in this.objectDescriptors.values()) {
+            result = new Result(itereatingDescriptor, this.type);
 
-            result = this.getUsageForDescriptor(itereatingDescriptor, possibleDependencies);
+            if (this.getDependantTypes().length) {
+
+                for (let dependantType of this.getDependantTypes()) {
+                    result.dependencies.set(dependantType, this.getDependenciesByType(itereatingDescriptor, dependantType, possibleDependencies.get(dependantType)));
+                }
+
+                result.used = false;
+
+                if (result.dependencies.size) {
+
+                    for (let dependencyType of result.dependencies.keys()) {
+
+                        for (let dependencyRes of result.dependencies.get(dependencyType).values()) {
+
+                            if (dependencyRes.used) {
+                                result.used = true;
+                                break;
+                            }
+                        }
+
+                        if (result.used) {
+                            break;
+                        }
+                    }
+                }
+
+            } else {
+                result.used = result.active;
+            }
+
             results.set(result.fullName, result);
         }
 
         return results;
     }
+    
+    protected async getMetadataFullNames(metadataType: string, folder: string): Promise<Array<string>> {
 
-    /**
-     * *******************
-     * TOOLING API
-     * *******************
-     */
+        const records = await this.conn.metadata.list([{type: metadataType, folder: folder}]);
 
-    private async fetchToolingSObjects(): Promise<void> {
-
-        const records = await this.conn.tooling.sobject(this.getSObjectName()).find({}, ['Id']);
-        
-        const ids: Array<string> = records.map(r => r.Id);
-
-        await this.fetchToolingDescriptions(ids);
-    }
-
-
-    private async fetchToolingDescriptions(ids: Array<string>, index: number = 0): Promise<void> {
-
-        let body = {
-            allOrNone: false,
-            compositeRequest: []
-        }
-
-        let i = index;
-        let count = 0;
-
-        while (i < ids.length && count < TOOLING_COMPOSITE_MAX_SIZE) {
-            
-            body.compositeRequest.push({
-                method: 'GET',
-                url: `/services/data/${this.conn.version}/tooling/sobjects/${this.getSObjectName()}/${ids[i]}`
-            });
-
-            i++;
-            count++;
-        }
-
-
-        const res: any = await this.conn.request({
-            body: JSON.stringify(body),
-            method: 'POST',
-            url: '/tooling/composite',
-            headers: {
-                'Content-Type': 'application/json'
+        const fullNames: Array<string> = records.reduce((filtered, record) => {
+            if (!record.manageableState || VALID_MANAGEABLE_STATES.includes(record.manageableState)) {
+                filtered.push(record.fullName);
             }
-        });
+            return filtered;
+        }, []);
 
-        for (let descriptor of res.compositeResponse) {
-            this.objectDescriptors.set(descriptor.body.FullName, descriptor.body);
-        }
-
-        if (i < (ids.length - 1)) {
-            await this.fetchToolingDescriptions(ids, i);
-        }
-    }
-
-    /**
-     * *******************
-     * METADATA API
-     * *******************
-     */
-
-    private async fetchMetadataSObjects(): Promise<void> {
-
-        const records = await this.conn.metadata.list([{type: this.getSObjectName()}]);
-
-        const fullNames: Array<string> = records.map(r => r.fullName);
-
-        await this.fetchMetadataDescriptions(fullNames);
+        return fullNames;
     }
 
     private async fetchMetadataDescriptions(fullNames: Array<string>, index: number = 0): Promise<void> {
@@ -197,36 +182,12 @@ export abstract class MetadataType {
      * STATIC METHODS
      * *******************
      */
-    public static createMetadataTypeDefinition(type: SupportedType, conn: Connection): MetadataType {
+    public static createMetadataTypeDefinition(type: string, conn: Connection): MetadataType {
         
-        let instance : MetadataType;
-
-        switch (type) {
-            case SupportedType.ApprovalProcess: instance = new ApprovalProcess();
-                break;
-            case SupportedType.EmailAlert: instance = new EmailAlert();
-                break;
-            case SupportedType.EmailTemplate: instance = new EmailTemplate();
-                break;
-            case SupportedType.EntitlementProcess: instance = new EntitlementProcess();
-                break;
-            case SupportedType.FieldUpdate: instance = new FieldUpdate();
-                break;
-            case SupportedType.Flow: instance = new Flow();
-                break;
-             case SupportedType.Milestone: instance = new Milestone();
-                break;
-            case SupportedType.ValidationRule: instance = new ValidationRule();
-                break;
-            case SupportedType.WorkflowRule: instance = new WorkflowRule();
-                break;
-            case SupportedType.WorkflowTask: instance = new WorkflowTask();
-                break;
-            default:
-                break;
-        }
+        let instance : MetadataType = MetadataStore[type]();
 
         instance.conn = conn;
+        instance.type = type;
 
         return instance;
     }

@@ -1,4 +1,8 @@
-import { MetadataType, SupportedType } from '../metadataType'
+import { MetadataType, MetadataObject } from '../metadataType';
+import { ApprovalProcess } from './approvalProcess';
+import { EntitlementProcess } from './entitlementProcess';
+import { WorkflowRule } from './workflowRule';
+
 import { Result } from '../result';
 
 export class FieldUpdate extends MetadataType {
@@ -7,15 +11,21 @@ export class FieldUpdate extends MetadataType {
         super();
     }
 
-    public getDependantTypes(): Array<SupportedType> {
+    public getDependantTypes(): Array<string> {
         return [
-            SupportedType.ApprovalProcess,
-            SupportedType.EntitlementProcess,
-            SupportedType.WorkflowRule
+            ApprovalProcess.name,
+            EntitlementProcess.name,
+            WorkflowRule.name
         ];
     }
 
     public getSObjectName(): string {
         return 'WorkflowFieldUpdate';
+    }
+
+    protected getDependenciesByType(descriptor: MetadataObject, type: string, possibleDependencies: Map<string, Result>): Map<string, Result> {
+
+        //TODO
+        return;
     }
 }

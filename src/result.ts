@@ -1,18 +1,18 @@
-import { SupportedType } from './metadataType'
-
-export enum Status {
-    Used,
-    Inactive,
-    InactiveDependencies,
-    NoDependencies
-}
+import { MetadataObject } from './metadataType'
 
 export class Result {
 
     fullName: string;
-    type: SupportedType;
+    type: string;
     active: boolean;
-    unsuedStatus: Status;
-    dependencies: Array<Result>;
-    metadata: any;
+    used: boolean;
+    dependencies: Map<string, Map<string, Result>>;
+    metadata: MetadataObject;
+
+    constructor(descriptor: MetadataObject, type: string) {
+        this.metadata = descriptor;
+        this.type = type;
+        this.fullName = descriptor.fullName;
+        this.active = descriptor.active === undefined || descriptor.active;
+    }
 }

@@ -1,5 +1,4 @@
-import { MetadataType, SupportedType, CriteriaItem, ActionType } from '../metadataType'
-import { Result, Status } from '../result';
+import { MetadataType, CriteriaItem, ActionType, MetadataObject } from '../metadataType'
 
 interface ApprovalEntryCriteria {
     booleanFilter: string;
@@ -16,16 +15,11 @@ interface SubmitterType {
     type: string;
 }
 
-interface Approver {
-    name: string;
-    type: string;
-}
-
 interface ApprovalStep {
     allowDelegate: boolean;
     approvalActions: Partial<ApprovalAction>;
     assignedApprover: {
-        approver: Partial<Array<Approver> | Approver>;
+        approver: Partial<Array<ActionType> | ActionType>;
         whenMultipleApprovers: string;
     };
     description: string;
@@ -39,9 +33,7 @@ interface ApprovalStep {
     rejectionActions: Partial<ApprovalAction>;
 }
 
-interface ApprovalProcessDescriptor {
-    fullName: string;
-    active: boolean;
+export interface ApprovalProcessDescriptor extends MetadataObject {
     allowRecall: boolean;
     allowedSubmitters: Partial<Array<SubmitterType> | SubmitterType>;
     approvalPageFields: {
@@ -71,33 +63,11 @@ interface ApprovalProcessDescriptor {
 
 export class ApprovalProcess extends MetadataType {
     
-    useTooling = false;
-
     constructor() {
         super();
     }
 
-    public getDependantTypes(): Array<SupportedType> {
-        return [];
-    }
-
     public getSObjectName(): string {
         return 'ApprovalProcess';
-    }
-
-    protected getUsageForDescriptor(descriptor: any, possibleDependencies: Map<SupportedType, Map<string, Result>>): Result {
-        
-        descriptor = descriptor as Partial<ApprovalProcessDescriptor>;
-
-        let res: Result = new Result();
-
-        res.metadata = descriptor;
-        res.type = SupportedType.ApprovalProcess;
-        res.fullName = descriptor.fullName;
-        res.active = descriptor.active;
-
-        res.unsuedStatus = res.active ? Status.Used : Status.Inactive;
-
-        return res;
     }
 }

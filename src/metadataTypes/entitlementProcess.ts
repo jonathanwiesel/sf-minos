@@ -1,5 +1,4 @@
-import { MetadataType, SupportedType, CriteriaItem, ActionType } from '../metadataType'
-import { Result, Status } from '../result';
+import { MetadataType, CriteriaItem, ActionType, MetadataObject } from '../metadataType'
 
 interface EntitlementProcessMilestoneTimeTrigger {
     actions: Partial<Array<ActionType> | ActionType>;
@@ -7,7 +6,7 @@ interface EntitlementProcessMilestoneTimeTrigger {
     workflowTimeTriggerUnit: string;
 }
 
-interface EntitlementProcessMilestoneItem {
+export interface EntitlementProcessMilestoneItem {
     businessHours: string;
     criteriaBooleanFilter?: string;
     milestoneCriteriaFilterItems: Partial<Array<CriteriaItem> | CriteriaItem>;
@@ -20,9 +19,7 @@ interface EntitlementProcessMilestoneItem {
     useCriteriaStartTime: boolean;
 }
 
-interface EntitlementProcessDescriptor {
-    fullName: string;
-    active: boolean;
+export interface EntitlementProcessDescriptor extends MetadataObject {
     businessHours: string;
     description: string;
     entryStartDateField: string;
@@ -40,32 +37,11 @@ interface EntitlementProcessDescriptor {
 
 export class EntitlementProcess extends MetadataType {
     
-    useTooling = false;
-
     constructor() {
         super();
     }
 
-    public getDependantTypes(): Array<SupportedType> {
-        return [];
-    }
-
     public getSObjectName(): string {
         return 'EntitlementProcess';
-    }
-
-    protected getUsageForDescriptor(descriptor: any, possibleDependencies: Map<SupportedType, Map<string, Result>>): Result {
-        
-        descriptor = descriptor as Partial<EntitlementProcessDescriptor>;
-
-        let res: Result = new Result();
-
-        res.metadata = descriptor;
-        res.type = SupportedType.EntitlementProcess;
-        res.fullName = descriptor.fullName;
-        res.active = descriptor.active; 
-        res.unsuedStatus = res.active ? Status.Used : Status.Inactive;
-
-        return res;
     }
 }

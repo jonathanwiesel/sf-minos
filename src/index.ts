@@ -1,14 +1,14 @@
 import { Connection } from 'jsforce'; 
 
 import { Result } from './result';
-import { MetadataType, SupportedType } from './metadataType';
+import { MetadataType } from './metadataType';
 
 
 export class Minos {
     
     conn: Connection;
-    typesCache: Map<SupportedType, MetadataType>;
-    usagePerType: Map<SupportedType, Map<string, Result>>;
+    typesCache: Map<string, MetadataType>;
+    usagePerType: Map<string, Map<string, Result>>;
 
     constructor(conn: Connection) {
         if (!conn.accessToken) {
@@ -19,11 +19,18 @@ export class Minos {
         this.usagePerType = new Map();
     }
 
-    public async reportUsage(types: Array<SupportedType>): Promise<Map<SupportedType, Map<string, Result>>> {
+    public getReportableTypes(): Array<string> {
+        //TODO
+        return;
+    }
+
+    public async reportUsage(types: Array<string>): Promise<Map<string, Map<string, Result>>> {
         
+        //TODO: check types are from supported types
+
         await this.createDescriptorsAndDetermineUsage(types);
         
-        let result: Map<SupportedType, Map<string, Result>> = new Map();
+        let result: Map<string, Map<string, Result>> = new Map();
 
         //TODO
 
@@ -31,10 +38,10 @@ export class Minos {
     }
 
 
-    private async createDescriptorsAndDetermineUsage(types: Array<SupportedType>): Promise<void> {
+    private async createDescriptorsAndDetermineUsage(types: Array<string>): Promise<void> {
 
         let typeDef: MetadataType;
-        let dependencies: Array<SupportedType>;
+        let dependencies: Array<string>;
         let usagesForType: Map<string, Result>;
 
         for (let type of types) {

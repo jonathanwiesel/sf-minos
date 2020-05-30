@@ -8,7 +8,7 @@
         "moduleResolution": "node",
         "alwaysStrict": true,
         "noUnusedLocals": true,
-        "outDir": "./lib",
+        "outDir": "./dist",
     },
     "include": ["src/**/*.ts"],
     "exclude": ["**/__tests__/*"]
